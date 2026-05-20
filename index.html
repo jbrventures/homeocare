@@ -16,8 +16,8 @@
   --red:#EF4444;--red-bg:#FEE2E2;--red-text:#991B1B;
   --green:#10B981;--green-bg:#D1FAE5;--green-text:#065F46;
   --blue:#3B82F6;--blue-bg:#EFF6FF;--blue-text:#1E40AF;
-  --sidebar-w:228px;--top-h:58px;
-  --r:10px;--r-sm:6px;--r-xs:4px;
+  --sidebar-w:228px;--sidebar-collapsed-w:60px;--top-h:58px;
+  --r:8px;--r-sm:6px;--r-xs:4px;
   --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
   --sh-md:0 4px 12px rgba(0,0,0,.09),0 2px 4px rgba(0,0,0,.04);
   --sh-lg:0 10px 30px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
@@ -68,6 +68,10 @@ select{padding-right:38px !important;-webkit-appearance:auto;appearance:auto}
 /* ───── FORGOT PASSWORD ───── */
 .forgot-link{display:block;text-align:right;font-size:12px;color:var(--text3);margin-top:8px;cursor:pointer;transition:color .15s}
 .forgot-link:hover{color:var(--primary)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:40px!important}
+.pw-toggle{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;padding:4px;cursor:pointer;color:var(--text3);display:flex;align-items:center;transition:color .15s}
+.pw-toggle:hover{color:var(--primary)}
 .forgot-panel{margin-top:20px;padding:18px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);display:none}
 .forgot-panel.show{display:block}
 .forgot-panel-title{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
@@ -123,6 +127,41 @@ select{padding-right:38px !important;-webkit-appearance:auto;appearance:auto}
 .user-role{font-size:11px;color:rgba(255,255,255,.4)}
 .btn-logout{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-sm);color:rgba(255,255,255,.6);font-size:13px;font-weight:500;transition:all .18s}
 .btn-logout:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#FCA5A5}
+
+/* ───── COLLAPSIBLE SIDEBAR ───── */
+.sidebar{transition:width .22s cubic-bezier(.4,0,.2,1)}
+.sidebar-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-logo-name{transition:opacity .18s,width .18s;white-space:nowrap;overflow:hidden}
+.sidebar-toggle{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:0;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;margin-left:auto}
+.sidebar-toggle:hover{background:rgba(255,255,255,.13);color:#fff;border-color:rgba(255,255,255,.22)}
+.sidebar-toggle svg{transition:transform .3s}
+.sidebar.collapsed .sidebar-toggle svg{transform:rotate(180deg)}
+.nav-label-text{transition:opacity .18s;white-space:nowrap;overflow:hidden}
+.nav-section-label{transition:opacity .18s,height .18s}
+.user-details{overflow:hidden;transition:opacity .18s,width .18s;white-space:nowrap}
+.btn-logout-text{transition:opacity .18s;white-space:nowrap;overflow:hidden}
+/* tooltip on collapsed */
+.nav-item{position:relative}
+.nav-tooltip{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:#1E2D3D;color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;border:1px solid rgba(255,255,255,.1);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.nav-tooltip::before{content:'';position:absolute;right:100%;top:50%;transform:translateY(-50%);border:5px solid transparent;border-right-color:#1E2D3D}
+
+/* ── Collapsed state ── */
+.sidebar.collapsed{width:var(--sidebar-collapsed-w)}
+.sidebar.collapsed .sidebar-logo-name{opacity:0;width:0;margin:0}
+.sidebar.collapsed .sidebar-toggle{margin-left:0}
+.sidebar.collapsed .sidebar-header{justify-content:center;padding:18px 0 14px}
+.sidebar.collapsed .sidebar-nav{padding:10px 8px}
+.sidebar.collapsed .nav-section-label{opacity:0;height:0;padding:0;margin:0;overflow:hidden}
+.sidebar.collapsed .nav-label-text{opacity:0;width:0}
+.sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
+.sidebar.collapsed .nav-item svg{width:18px;height:18px;margin:0}
+.sidebar.collapsed .nav-item.active::before{left:-8px}
+.sidebar.collapsed .nav-item:hover .nav-tooltip{opacity:1}
+.sidebar.collapsed .sidebar-footer{padding:12px 0}
+.sidebar.collapsed .user-info{justify-content:center}
+.sidebar.collapsed .user-details{opacity:0;width:0;margin:0}
+.sidebar.collapsed .btn-logout{justify-content:center;padding:8px 0}
+.sidebar.collapsed .btn-logout-text{opacity:0;width:0}
 
 /* ───── MAIN ───── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -284,6 +323,14 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 .line-items-table tr:last-child td{border-bottom:none}
 .qty-input{width:70px;padding:5px 8px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none}
 .qty-input:focus{border-color:var(--primary)}
+/* ── Qty stepper (purchase order) ── */
+.qty-stepper{display:inline-flex;align-items:center;border:1.5px solid var(--border);border-radius:6px;overflow:hidden;background:var(--surface);transition:border-color .18s}
+.qty-stepper:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(29,158,117,.1)}
+.qty-stepper-btn{width:28px;height:30px;border:none;background:var(--bg);color:var(--text2);font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .14s,color .14s;flex-shrink:0;font-weight:600}
+.qty-stepper-btn:hover{background:var(--primary-light);color:var(--primary)}
+.qty-stepper-btn:active{background:var(--primary-mid)}
+.qty-stepper-input{width:52px;padding:5px 4px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;background:var(--surface);color:var(--text);-moz-appearance:textfield}
+.qty-stepper-input::-webkit-inner-spin-button,.qty-stepper-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .rate-input{width:90px;padding:5px 8px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;outline:none}
 .rate-input:focus{border-color:var(--primary)}
 .remove-line{background:none;border:none;color:var(--text3);padding:3px;border-radius:3px;cursor:pointer;display:flex}
@@ -497,7 +544,13 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" id="login-password" placeholder="••••••••">
+      <div class="pw-wrap">
+        <input type="password" id="login-password" placeholder="Enter password">
+        <button type="button" class="pw-toggle" onclick="toggleLoginPw(this)" tabindex="-1" aria-label="Show/hide password">
+          <svg id="login-pw-eye" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="login-pw-eye-off" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
     </div>
     <button class="btn-login" onclick="doLogin()">Sign In</button>
     <span class="forgot-link" onclick="toggleForgotPanel()">Forgot password?</span>
@@ -550,7 +603,7 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 <!-- ═══ APP SHELL ═══ -->
 <div id="app">
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">
         <div class="sidebar-logo-icon">
@@ -558,6 +611,9 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
         </div>
         <div class="sidebar-logo-name">Homeo<span>Care</span></div>
       </div>
+      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
     </div>
     <nav class="sidebar-nav" id="sidebar-nav">
       <!-- injected by JS -->
@@ -565,14 +621,14 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
     <div class="sidebar-footer">
       <div class="user-info">
         <div class="user-avatar" id="sb-avatar">?</div>
-        <div>
+        <div class="user-details">
           <div class="user-name" id="sb-name">—</div>
           <div class="user-role" id="sb-role">—</div>
         </div>
       </div>
       <button class="btn-logout" onclick="doLogout()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Sign Out
+        <span class="btn-logout-text">Sign Out</span>
       </button>
     </div>
   </aside>
@@ -984,6 +1040,7 @@ function hideLoading() {
     document.getElementById('sb-role').textContent = u.role;
     document.getElementById('sb-avatar').textContent = u.name.split(' ').map(n => n[0]).join('').slice(0,2);
     buildSidebar();
+    restoreSidebarState();
     navigate(u.role === 'Admin' ? 'dashboard' : 'items');
   } catch(e) { console.warn('Session restore failed:', e); }
 })();
@@ -1019,6 +1076,16 @@ let editingStartupId = null; // 'all' | 'daily' | 'monthly' | 'yearly'
 // ═══════════════════════════════════════════════
 //  AUTH
 // ═══════════════════════════════════════════════
+function toggleLoginPw(btn) {
+  const inp = document.getElementById('login-password');
+  const eyeOn  = document.getElementById('login-pw-eye');
+  const eyeOff = document.getElementById('login-pw-eye-off');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  eyeOn.style.display  = show ? 'none' : '';
+  eyeOff.style.display = show ? '' : 'none';
+}
+
 function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
@@ -1033,6 +1100,7 @@ function doLogin() {
   document.getElementById('sb-role').textContent = u.role;
   document.getElementById('sb-avatar').textContent = u.name.split(' ').map(n => n[0]).join('').slice(0,2);
   buildSidebar();
+  restoreSidebarState();
   navigate(u.role === 'Admin' ? 'dashboard' : 'items');
 }
 
@@ -1186,14 +1254,14 @@ function saveChangedPassword() {
 // ═══════════════════════════════════════════════
 const NAV_CONFIG = [
   {section:'Overview', items:[{key:'dashboard',label:'Dashboard',admin:true,icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'}]},
-  {section:'Inventory', items:[{key:'items',label:'Items',admin:false,icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>'}]},
+  {section:'Inventory', items:[{key:'items',label:'Items',admin:false,icon:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'}]},
   {section:'Transactions', items:[
     {key:'orders',label:'Sales Orders',admin:false,icon:'<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'},
     {key:'purchase',label:'Purchase Orders',admin:false,icon:'<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h6l-3 9H16"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>'},
-    {key:'expenses',label:'Expenses',admin:false,icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'}
+    {key:'expenses',label:'Expenses',admin:false,icon:'<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>'}
   ]},
   {section:'Analytics', items:[{key:'reports',label:'Reports',admin:true,icon:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'}]},
-  {section:'Finance', items:[{key:'capital',label:'Capital & Funding',admin:true,icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><circle cx="12" cy="12" r="10" style="display:none"/>'}]},
+  {section:'Finance', items:[{key:'capital',label:'Capital & Funding',admin:true,icon:'<line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/>'}]},
   {section:'Admin', items:[{key:'users',label:'User Management',admin:true,icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'}]}
 ];
 
@@ -1210,12 +1278,27 @@ function buildSidebar() {
       const el = document.createElement('div');
       el.className = 'nav-item';
       el.dataset.key = item.key;
-      el.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${item.icon}</svg>${item.label}`;
+      el.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${item.icon}</svg><span class="nav-label-text">${item.label}</span><span class="nav-tooltip">${item.label}</span>`;
       el.onclick = () => navigate(item.key);
       s.appendChild(el);
     });
     nav.appendChild(s);
   });
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const isCollapsed = sb.classList.toggle('collapsed');
+  try { localStorage.setItem('homeocare_sidebar_collapsed', isCollapsed ? '1' : '0'); } catch(e){}
+}
+
+function restoreSidebarState() {
+  try {
+    const collapsed = localStorage.getItem('homeocare_sidebar_collapsed');
+    if (collapsed === '1') {
+      document.getElementById('sidebar').classList.add('collapsed');
+    }
+  } catch(e){}
 }
 
 function navigate(page, sub) {
@@ -1710,13 +1793,13 @@ function openItemModal(id) {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Unit of Measurement</label>
+        <label>Unit of Measurement *</label>
         <select id="i-uom" onchange="updateUOMPreview()">
           ${UOM_OPTIONS.map(u=>`<option value="${u.value}" ${(item?.uom||'pcs')===u.value?'selected':''}>${u.label} (${u.value})</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
-        <label>Unit Qty per Measurement</label>
+        <label>Number of Units</label>
         <input type="number" id="i-unit" min="1" value="${item?.unit||1}" oninput="updateUOMPreview()">
         <div id="uom-preview" class="uom-preview">Preview: <span class="uom-badge" id="uom-badge-prev">${item?.unit||1} ${item?.uom||'pcs'}</span></div>
       </div>
@@ -1748,6 +1831,8 @@ function saveItem() {
   const sell = parseFloat(document.getElementById('i-sell').value);
   if(!name) { toast('Item name is required','error'); return; }
   if(!sell && sell!==0) { toast('Selling rate is required','error'); return; }
+  const uomVal = document.getElementById('i-uom').value;
+  if(!uomVal) { toast('Unit of Measurement is required','error'); return; }
   const type = document.querySelector('input[name="item-type"]:checked')?.value || 'goods';
   const data = {
     name,sku:document.getElementById('i-sku').value.trim(),
@@ -2083,6 +2168,13 @@ function updateLineQty(idx, val, prefix) {
   document.getElementById(prefix+'-totals').innerHTML = prefix==='ord'?renderOrderTotals():renderPurchaseTotals();
 }
 
+function stepQty(idx, delta, prefix) {
+  const lines = prefix==='ord' ? orderLines : purchaseLines;
+  lines[idx].qty = Math.max(0, (lines[idx].qty||0) + delta);
+  document.getElementById(prefix+'-lines-wrap').innerHTML = prefix==='ord'?renderOrderLines():renderPurchaseLines();
+  document.getElementById(prefix+'-totals').innerHTML = prefix==='ord'?renderOrderTotals():renderPurchaseTotals();
+}
+
 function updateLineRate(idx, val, prefix) {
   const lines = prefix==='ord' ? orderLines : purchaseLines;
   lines[idx].rate = parseFloat(val)||0;
@@ -2364,8 +2456,28 @@ function renderPurchaseModalBody() {
     </div>
     ` : `
     <div class="form-row">
-      <div class="form-group"><label>Vendor Name *</label><input id="po-vendor" value="${po?.vendor||''}" placeholder="Supplier / vendor name"></div>
-      <div class="form-group"><label>Expected Delivery</label><input type="date" id="po-delivery" value="${po?.delivery||''}"></div>
+      <div class="form-group">
+        <label>Vendor Name *</label>
+        <div style="position:relative">
+          <input id="po-vendor" value="${po?.vendor||''}" placeholder="Type or choose a vendor"
+            autocomplete="off" list="vendor-suggestions"
+            style="width:100%;padding-right:32px">
+          <datalist id="vendor-suggestions">
+            ${[...new Set(purchaseOrders.filter(o=>o.vendor&&o.vendor!=='Own Production').map(o=>o.vendor))].sort().map(v=>`<option value="${v}">`).join('')}
+          </datalist>
+          <svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text3)" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        ${[...new Set(purchaseOrders.filter(o=>o.vendor&&o.vendor!=='Own Production').map(o=>o.vendor))].length>0?`
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px">
+          ${[...new Set(purchaseOrders.filter(o=>o.vendor&&o.vendor!=='Own Production').map(o=>o.vendor))].sort().map(v=>`
+            <button type="button" onclick="document.getElementById('po-vendor').value='${v.replace(/'/g,"\\'")}'"
+              style="padding:3px 10px;border-radius:99px;border:1.5px solid var(--border);background:var(--bg);font-size:11.5px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap"
+              onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';this.style.background='var(--primary-light)'"
+              onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)';this.style.background='var(--bg)'">
+              ${v}
+            </button>`).join('')}
+        </div>`:'<div style="margin-top:5px;font-size:11px;color:var(--text3)">No previous vendors yet.</div>'}
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -2429,7 +2541,13 @@ function renderPurchaseLines() {
         if(!item) return '';
         return `<tr>
           <td><strong>${item.name}</strong> <span class="uom-badge" style="font-size:10px">${item.uom}</span></td>
-          <td><input class="qty-input" type="number" min="0" value="${l.qty}" oninput="updateLineQty(${i},this.value,'purchase')"></td>
+          <td>
+            <div class="qty-stepper">
+              <button type="button" class="qty-stepper-btn" onclick="stepQty(${i},-1,'purchase')" title="Decrease">−</button>
+              <input class="qty-stepper-input" type="number" min="0" value="${l.qty}" oninput="updateLineQty(${i},this.value,'purchase')" onblur="if(this.value===''||+this.value<0){this.value=0;updateLineQty(${i},0,'purchase')}">
+              <button type="button" class="qty-stepper-btn" onclick="stepQty(${i},1,'purchase')" title="Increase">+</button>
+            </div>
+          </td>
           <td><input class="rate-input" type="number" min="0" value="${l.rate}" oninput="updateLineRate(${i},this.value,'purchase')" ${isProd?'placeholder="0.00 optional"':''}></td>
           <td class="mono fw-6">${fmt(l.qty*l.rate)}</td>
           <td><button class="remove-line" onclick="removeLine(${i},'purchase')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>
@@ -2476,7 +2594,6 @@ function savePurchaseOrder() {
   } else {
     // Standard Purchase Order
     const vendor = document.getElementById('po-vendor')?.value.trim();
-    const delivery = document.getElementById('po-delivery')?.value;
     const paymentStatus = document.getElementById('po-payment')?.value;
     const amountPaid = paymentStatus==='Partially Paid' ? (parseFloat(document.getElementById('po-amount-paid')?.value)||0) : null;
     if(!vendor) { toast('Vendor name is required','error'); return; }
@@ -2488,7 +2605,7 @@ function savePurchaseOrder() {
     }
     purchaseLines.forEach(l=>{ const item=getItem(l.itemId); if(item&&item.type==='goods') item.stock+=l.qty; });
 
-    po = {id, date, entryType:'purchase', vendor, delivery,
+    po = {id, date, entryType:'purchase', vendor,
           lines:purchaseLines.map(l=>({...l})), paymentStatus, amountPaid, total};
   }
 
@@ -3241,9 +3358,9 @@ function renderReportPurchaseHistory(el) {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>PO #</th><th>Date</th><th>Vendor</th><th>Delivery</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+        <thead><tr><th>PO #</th><th>Date</th><th>Vendor</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
         <tbody>
-          ${filtered.length ? [...filtered].sort((a,b)=>b.date.localeCompare(a.date)).map(o=>{const bal=o.total-(o.amountPaid||o.total);return`<tr><td class="td-mono fw-6">${o.id}</td><td>${fmtDate(o.date)}</td><td class="fw-6">${o.vendor}</td><td>${fmtDate(o.delivery)}</td><td class="td-mono fw-6">${fmt(o.total)}</td><td class="td-mono text-green">${fmt(o.amountPaid||o.total)}</td><td class="td-mono" style="color:${bal===0?'var(--green)':'var(--amber)'}">${fmtN(bal)}</td><td><span class="pill ${o.paymentStatus==='Paid'?'pill-green':'pill-amber'}">${o.paymentStatus}</span></td></tr>`;}).join('')
+          ${filtered.length ? [...filtered].sort((a,b)=>b.date.localeCompare(a.date)).map(o=>{const bal=o.total-(o.amountPaid||o.total);return`<tr><td class="td-mono fw-6">${o.id}</td><td>${fmtDate(o.date)}</td><td class="fw-6">${o.vendor}</td><td class="td-mono fw-6">${fmt(o.total)}</td><td class="td-mono text-green">${fmt(o.amountPaid||o.total)}</td><td class="td-mono" style="color:${bal===0?'var(--green)':'var(--amber)'}">${fmtN(bal)}</td><td><span class="pill ${o.paymentStatus==='Paid'?'pill-green':'pill-amber'}">${o.paymentStatus}</span></td></tr>`;}).join('')
           : `<tr><td colspan="8"><div class="empty-state"><p>No purchase orders found</p><small>Try a different period</small></div></td></tr>`}
         </tbody>
       </table>
@@ -4056,7 +4173,6 @@ function printPurchaseOrder(id) {
            ${o.note?`<div class="print-meta-item"><label>Note</label><span>${o.note}</span></div>`:''}
            <div class="print-meta-item"><label>Payment</label><span style="color:#6B21A8;font-weight:600">No Payment Required</span></div>`
         : `<div class="print-meta-item"><label>Vendor</label><span>${o.vendor}</span></div>
-           <div class="print-meta-item"><label>Expected Delivery</label><span>${fmtDate(o.delivery)}</span></div>
            <div class="print-meta-item"><label>Payment Status</label><span>${o.paymentStatus}</span></div>
            ${balance>0?`<div class="print-meta-item"><label>Balance Due</label><span style="color:#F59E0B;font-weight:700">${fmt(balance)}</span></div>`:''}`
       }
