@@ -684,6 +684,11 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
         <!-- injected -->
       </div>
 
+      <!-- PATIENT MANAGEMENT -->
+      <div class="page" id="page-patients">
+        <!-- injected -->
+      </div>
+
     </div><!-- /page-content -->
   </div><!-- /main -->
 </div><!-- /app -->
@@ -829,6 +834,35 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
   </div>
 </div>
 
+<!-- Add/Edit Patient Modal -->
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div class="modal-title" id="patient-modal-title">Add Patient</div>
+      <button class="modal-close" onclick="closeModal('modal-patient')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="patient-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-patient')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePatient()">Save Patient</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share / Export Patient Modal -->
+<div class="modal-overlay" id="modal-share-patient">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div class="modal-title" id="share-patient-title">Share Patient Details</div>
+      <button class="modal-close" onclick="closeModal('modal-share-patient')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="share-patient-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-share-patient')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
@@ -916,6 +950,18 @@ let startupExpenses = [
   {id:'SU-005',date:'2026-01-20',desc:'Initial branding & signage',category:'Marketing & Branding',amount:28000,paidTo:'Creative Agency',method:'Bank Transfer',notes:'Logo design, signage, business cards'}
 ];
 
+// Patient Management — seed data. relDate() keeps demo follow-up dates relative to "today".
+function relDate(offset){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+offset); return d.toISOString().split('T')[0]; }
+let patients = [
+  {id:'PT-0001',name:'Aisha Rahman',regNo:'HC-2026-001',mobile:'+91 98765 43210',gender:'Female',lastVisit:relDate(-30),followUpDate:relDate(-4),notes:'Responding to Belladonna 200 — review headache frequency.'},
+  {id:'PT-0002',name:'Mohammed Idris',regNo:'HC-2026-002',mobile:'+91 99887 76655',gender:'Male',lastVisit:relDate(-21),followUpDate:relDate(-1),notes:'Seasonal sneezing — on Allium cepa 30.'},
+  {id:'PT-0003',name:'Sara Thomas',regNo:'HC-2026-003',mobile:'+91 91234 56789',gender:'Female',lastVisit:relDate(-14),followUpDate:relDate(0),notes:'Elbow patches improving with Graphites 30.'},
+  {id:'PT-0004',name:'Rajesh Nair',regNo:'HC-2026-004',mobile:'+91 90011 22334',gender:'Male',lastVisit:relDate(-10),followUpDate:relDate(2),notes:'Advise diet changes — Nux vomica 30 at night.'},
+  {id:'PT-0005',name:'Fatima Al Balushi',regNo:'HC-2026-005',mobile:'+91 87654 32109',gender:'Female',lastVisit:relDate(-7),followUpDate:relDate(5),notes:'Sleep improving — continue Coffea cruda.'},
+  {id:'PT-0006',name:'David Pereira',regNo:'HC-2026-006',mobile:'+91 78901 23456',gender:'Male',lastVisit:relDate(-5),followUpDate:relDate(12),notes:'Rhus tox 200 — review mobility next visit.'},
+  {id:'PT-0007',name:'Lakshmi Menon',regNo:'HC-2026-007',mobile:'+91 96543 21098',gender:'Female',lastVisit:relDate(-3),followUpDate:'',notes:'Constitutional remedy under review — no follow-up scheduled yet.'}
+];
+
 const CAPITAL_TYPES = ["Owner's Capital",'Business Loan','Investor Funding','Asset Contribution','Grant / Subsidy'];
 const STARTUP_CATEGORIES = ['Equipment & Furniture','Legal & Registration','Rent & Deposit','Technology','Marketing & Branding','Vehicle','Training & Recruitment','Other One-time'];
 
@@ -957,7 +1003,7 @@ function setSyncStatus(state) {
 
 // ── Save to localStorage + cloud ──────────────
 function saveData() {
-  const payload = { users, items, salesOrders, purchaseOrders, expenses, expenseCategories, capitalEntries, startupExpenses };
+  const payload = { users, items, salesOrders, purchaseOrders, expenses, expenseCategories, capitalEntries, startupExpenses, patients };
   // 1. Save locally first (instant)
   try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch(e) {}
   // 2. Sync to Google Sheets (background)
@@ -991,6 +1037,7 @@ async function loadData() {
         if (d.expenseCategories) expenseCategories = d.expenseCategories;
         if (d.capitalEntries)    capitalEntries    = d.capitalEntries;
         if (d.startupExpenses)   startupExpenses   = d.startupExpenses;
+        if (d.patients)          patients          = d.patients;
         // Mirror to localStorage as cache
         try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch(e) {}
         return;
@@ -1012,6 +1059,7 @@ async function loadData() {
     if (d.expenseCategories) expenseCategories = d.expenseCategories;
     if (d.capitalEntries)    capitalEntries    = d.capitalEntries;
     if (d.startupExpenses)   startupExpenses   = d.startupExpenses;
+    if (d.patients)          patients          = d.patients;
   } catch(e) { console.warn('Local load failed:', e); }
 }
 
@@ -1069,8 +1117,12 @@ let expandedOrderRows = new Set();
 let activeDropdown = null;
 let dashCharts = {};
 let reportCharts = {};
-let reportPeriod = { type: 'all', value: null, from: '2026-01-01', to: '2026-04-28', year1: '2025', year2: '2026' };
+let reportPeriod = { type: 'all', value: null, from: startOfYearStr(), to: today(), year1: lastYearStr(), year2: thisYearStr() };
 let editingCapitalId = null;
+let editingPatientId = null;
+let sharePatientId = null;
+let patientView = 'all'; // 'all' | 'due' | 'upcoming' | 'nofu' — which KPI card is selected
+let patientsSearch = '';
 let editingStartupId = null; // 'all' | 'daily' | 'monthly' | 'yearly'
 
 // ═══════════════════════════════════════════════
@@ -1254,6 +1306,7 @@ function saveChangedPassword() {
 // ═══════════════════════════════════════════════
 const NAV_CONFIG = [
   {section:'Overview', items:[{key:'dashboard',label:'Dashboard',admin:true,icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'}]},
+  {section:'Patients', items:[{key:'patients',label:'Patient Management',admin:false,icon:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'}]},
   {section:'Inventory', items:[{key:'items',label:'Items',admin:false,icon:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'}]},
   {section:'Transactions', items:[
     {key:'orders',label:'Sales Orders',admin:false,icon:'<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'},
@@ -1306,7 +1359,7 @@ function navigate(page, sub) {
   currentReport = sub || null;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.key === page));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  const names = {dashboard:'Dashboard',items:'Items',orders:'Sales Orders',purchase:'Purchase Orders',expenses:'Expenses',reports:'Reports',users:'User Management',capital:'Capital & Funding'};
+  const names = {dashboard:'Dashboard',items:'Items',orders:'Sales Orders',purchase:'Purchase Orders',expenses:'Expenses',reports:'Reports',users:'User Management',capital:'Capital & Funding',patients:'Patient Management'};
   document.getElementById('topbar-title').textContent = names[page] || page;
   const p = document.getElementById('page-' + page);
   if (p) {
@@ -1329,6 +1382,7 @@ function renderPage(page, sub) {
     case 'reports': renderReports(sub); break;
     case 'users': renderUsers(); break;
     case 'capital': renderCapital(); break;
+    case 'patients': renderPatients(); break;
   }
 }
 
@@ -1351,6 +1405,12 @@ function genId(prefix, arr) {
 }
 function isProd(o) { return o?.entryType === 'production'; }
 function today() { return new Date().toISOString().split('T')[0]; }
+// System-date helpers — everything "current" derives from the real clock, not a fixed date.
+function thisMonthStr() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function thisYearStr()  { return String(new Date().getFullYear()); }
+function lastYearStr()  { return String(new Date().getFullYear()-1); }
+function startOfYearStr(){ return new Date().getFullYear()+'-01-01'; }
+function recentYears(n)  { const y=new Date().getFullYear(); return Array.from({length:n},(_,i)=>String(y-(n-1)+i)); }
 
 function toast(msg, type='success') {
   const c = document.getElementById('toast-container');
@@ -1399,6 +1459,9 @@ function renderDashboard() {
 
   const lowItems = items.filter(i=>i.type==='goods'&&i.stock>0&&i.stock<=i.reorder);
 
+  const fuDue = patients.filter(isFollowUpDue).length;
+  const fuUpcoming = patients.filter(isFollowUpUpcoming).length;
+
   // recent sales
   const recent = [...salesOrders].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
 
@@ -1428,6 +1491,14 @@ function renderDashboard() {
         <div class="metric-label">Low Stock</div>
         <div class="metric-value">${lowStock}</div>
         <div class="metric-sub">${outStock} out of stock</div>
+      </div>
+      <div class="metric-card" onclick="navigate('patients')" style="border-top:3px solid ${fuDue>0?'var(--red)':'var(--primary)'}">
+        <div class="metric-icon" style="background:${fuDue>0?'var(--red-bg)':'var(--primary-light)'}">
+          <svg fill="none" stroke="${fuDue>0?'var(--red)':'var(--primary)'}" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="metric-label">Follow-ups Due</div>
+        <div class="metric-value" style="color:${fuDue>0?'var(--red-text)':'var(--text)'}">${fuDue}</div>
+        <div class="metric-sub">${fuUpcoming} upcoming · ${patients.length} patients</div>
       </div>
     </div>
 
@@ -1570,12 +1641,11 @@ function renderDashboard() {
     const itemRevenue = {};
     salesOrders.forEach(o=>o.lines.forEach(l=>{itemRevenue[l.itemId]=(itemRevenue[l.itemId]||0)+l.qty*l.rate;}));
     const top5 = Object.entries(itemRevenue).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    dashCharts.top = makeBarChart('dash-chart-top',top5.map(([id])=>getItem(id)?.name||id),[{label:'Revenue',data:top5.map(([,v])=>v),color:'#8B5CF6'}]);
+    dashCharts.top = makeBarChart('dash-chart-top',top5.map(([id])=>getItem(id)?.name||id),[{label:'Revenue',data:top5.map(([,v])=>v),color:'#8B5CF6',multicolor:true}]);
 
-    // Stock by category (simple grouping by UOM)
-    const byCat = {};
-    items.filter(i=>i.type==='goods').forEach(i=>{byCat[i.uom]=(byCat[i.uom]||0)+i.stock;});
-    dashCharts.stock = makeDoughnut('dash-chart-stock',Object.keys(byCat),Object.values(byCat));
+    // Stock by product (each product shown as its own coloured segment)
+    const stockGoods = items.filter(i=>i.type==='goods' && i.stock>0).sort((a,b)=>b.stock-a.stock);
+    dashCharts.stock = makeDoughnut('dash-chart-stock',stockGoods.map(i=>i.name),stockGoods.map(i=>i.stock));
 
     // Expenses vs Net Profit chart
     const expByM   = months.map(m=>expenses.filter(e=>e.date.slice(0,7)===m).reduce((s,e)=>s+e.amount,0));
@@ -1608,7 +1678,7 @@ function renderDashboard() {
 
 function getLast6Months() {
   const months = [];
-  const d = new Date('2026-04-28');
+  const d = new Date();
   for(let i=5;i>=0;i--) {
     const m = new Date(d.getFullYear(), d.getMonth()-i, 1);
     months.push(m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0'));
@@ -1616,17 +1686,18 @@ function getLast6Months() {
   return months;
 }
 
-const CHART_COLORS = ['#1D9E75','#3B82F6','#8B5CF6','#F59E0B','#EF4444','#10B981','#EC4899','#06B6D4'];
+const CHART_COLORS = ['#1D9E75','#3B82F6','#8B5CF6','#F59E0B','#EF4444','#10B981','#EC4899','#06B6D4','#F97316','#6366F1','#D946EF','#0EA5E9','#84CC16','#EAB308','#14B8A6','#F43F5E'];
 
 function makeBarChart(canvasId, labels, datasets) {
   const ctx = document.getElementById(canvasId);
   if(!ctx) return null;
   try{if(dashCharts[canvasId])dashCharts[canvasId].destroy();}catch(e){}
   try{if(reportCharts[canvasId])reportCharts[canvasId].destroy();}catch(e){}
+  const multi = datasets.some(d=>d.multicolor);
   return new Chart(ctx, {
     type:'bar',
-    data:{labels,datasets:datasets.map((d,i)=>({label:d.label,data:d.data,backgroundColor:(d.color||CHART_COLORS[i])+'CC',borderColor:d.color||CHART_COLORS[i],borderWidth:1.5,borderRadius:4}))},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10,padding:12}}},scales:{x:{grid:{display:false},ticks:{font:{family:'DM Sans',size:11}}},y:{grid:{color:'#F0F4F8'},ticks:{font:{family:'DM Sans',size:11},callback:v=>v>=1000?'₹'+(v/1000)+'k':'₹'+v}}}}
+    data:{labels,datasets:datasets.map((d,i)=>({label:d.label,data:d.data,backgroundColor:d.multicolor?d.data.map((_,j)=>CHART_COLORS[j%CHART_COLORS.length]+'CC'):(d.color||CHART_COLORS[i])+'CC',borderColor:d.multicolor?d.data.map((_,j)=>CHART_COLORS[j%CHART_COLORS.length]):(d.color||CHART_COLORS[i]),borderWidth:1.5,borderRadius:4}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:!multi,position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10,padding:12}}},scales:{x:{grid:{display:false},ticks:{font:{family:'DM Sans',size:11}}},y:{grid:{color:'#F0F4F8'},ticks:{font:{family:'DM Sans',size:11},callback:v=>v>=1000?'₹'+(v/1000)+'k':'₹'+v}}}}
   });
 }
 
@@ -1645,7 +1716,7 @@ function makeDoughnut(canvasId, labels, data) {
   if(!ctx) return null;
   return new Chart(ctx, {
     type:'doughnut',
-    data:{labels,datasets:[{data,backgroundColor:CHART_COLORS.map(c=>c+'CC'),borderColor:CHART_COLORS,borderWidth:1.5}]},
+    data:{labels,datasets:[{data,backgroundColor:data.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]+'CC'),borderColor:data.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),borderWidth:1.5}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{family:'DM Sans',size:11},boxWidth:12,padding:10}}},cutout:'62%'}
   });
 }
@@ -1791,19 +1862,9 @@ function openItemModal(id) {
       <div class="form-group"><label>Item Name *</label><input id="i-name" value="${item?.name||''}" placeholder="e.g. Whole Milk 1L"></div>
       <div class="form-group"><label>SKU</label><input id="i-sku" value="${item?.sku||''}" placeholder="e.g. DAIRY-001"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Unit of Measurement *</label>
-        <select id="i-uom" onchange="updateUOMPreview()">
-          ${UOM_OPTIONS.map(u=>`<option value="${u.value}" ${(item?.uom||'pcs')===u.value?'selected':''}>${u.label} (${u.value})</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Number of Units</label>
-        <input type="number" id="i-unit" min="1" value="${item?.unit||1}" oninput="updateUOMPreview()">
-        <div id="uom-preview" class="uom-preview">Preview: <span class="uom-badge" id="uom-badge-prev">${item?.unit||1} ${item?.uom||'pcs'}</span></div>
-      </div>
-    </div>
+    <!-- Unit of Measurement & Number of Units deactivated for now. Kept as hidden defaults so saving works and existing data is preserved; restore the form-row to re-enable. -->
+    <input type="hidden" id="i-uom" value="${item?.uom||'pcs'}">
+    <input type="hidden" id="i-unit" value="${item?.unit||1}">
     <div class="section-sep">Purchase</div>
     <div class="form-row">
       <div class="form-group"><label>Purchase Rate (₹)</label><input type="number" id="i-purchase" min="0" value="${item?.purchase||''}"></div>
@@ -1923,7 +1984,7 @@ function renderOrders() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Order #</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Balance Due</th><th>Stock</th><th></th>
+          <th>Order #</th><th>Date</th><th>Customer</th><th>Products</th><th>Total</th><th>Payment</th><th>Balance Due</th><th>Stock</th><th></th>
         </tr></thead>
         <tbody id="orders-tbody"></tbody>
       </table>
@@ -1978,7 +2039,7 @@ function renderOrderRow(o) {
       <td class="td-mono fw-6">${o.id}</td>
       <td>${fmtDate(o.date)}</td>
       <td class="fw-6">${o.customer}</td>
-      <td class="td-muted">${o.lines.length} item${o.lines.length!==1?'s':''}</td>
+      <td>${o.lines.map(l=>{const it=getItem(l.itemId);return `<div style="white-space:nowrap;line-height:1.55"><span class="fw-6">${it?.name||'—'}</span> <span class="td-muted" style="font-size:12px">× ${l.qty}</span></div>`;}).join('')}</td>
       <td class="td-mono fw-6">${fmt(o.total)}</td>
       <td><span class="pill ${o.paymentStatus==='Paid'?'pill-green':'pill-amber'}">${o.paymentStatus}</span></td>
       <td class="td-mono" style="color:${balance===0?'var(--green)':'var(--amber)'}">${fmtN(balance)}</td>
@@ -2639,7 +2700,7 @@ let expSearch = '';
 let expFilter = 'All';
 
 function renderExpenses() {
-  const now = new Date('2026-04-28');
+  const now = new Date();
   const thisMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   const totalAmt = expenses.reduce((s,e)=>s+e.amount,0);
   const thisMonthAmt = expenses.filter(e=>e.date.slice(0,7)===thisMonth).reduce((s,e)=>s+e.amount,0);
@@ -2709,7 +2770,7 @@ function renderExpenses() {
     const months = getLast6Months();
     const expByM = months.map(m=>expenses.filter(e=>e.date.slice(0,7)===m).reduce((s,e)=>s+e.amount,0));
     const mLabels = months.map(m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleString('en',{month:'short'})});
-    reportCharts['exp-monthly'] = makeBarChart('exp-chart-monthly',mLabels,[{label:'Expenses',data:expByM,color:'#EF4444'}]);
+    reportCharts['exp-monthly'] = makeBarChart('exp-chart-monthly',mLabels,[{label:'Expenses',data:expByM,color:'#EF4444',multicolor:true}]);
     const byCat = {};
     expenses.forEach(e=>{ byCat[e.category]=(byCat[e.category]||0)+e.amount; });
     reportCharts['exp-cat'] = makeDoughnut('exp-chart-cat',Object.keys(byCat),Object.values(byCat));
@@ -2879,16 +2940,16 @@ function renderPeriodBar(key) {
   const bar = document.getElementById('period-bar');
   if(!bar) return;
   const rp = reportPeriod;
-  const years = ['2024','2025','2026'];
+  const years = recentYears(3);
 
   // Evaluate current values at render time so onclick strings work correctly
   const dailyVal   = rp.type==='daily'   ? (rp.value||today())   : today();
-  const monthlyVal = rp.type==='monthly' ? (rp.value||'2026-04') : '2026-04';
-  const yearlyVal  = rp.type==='yearly'  ? (rp.value||'2026')    : '2026';
+  const monthlyVal = rp.type==='monthly' ? (rp.value||thisMonthStr()) : thisMonthStr();
+  const yearlyVal  = rp.type==='yearly'  ? (rp.value||thisYearStr())    : thisYearStr();
   const fromVal    = rp.from || '2026-01-01';
   const toVal      = rp.to   || today();
-  const y1Val      = rp.year1 || '2025';
-  const y2Val      = rp.year2 || '2026';
+  const y1Val      = rp.year1 || lastYearStr();
+  const y2Val      = rp.year2 || thisYearStr();
 
   let pickerHTML = '';
   if(rp.type==='daily') {
@@ -2972,9 +3033,9 @@ function getPeriodLabel() {
   if(rp.type==='all')     return 'All Time';
   if(rp.type==='daily')   return fmtDate(rp.value);
   if(rp.type==='monthly'&&rp.value) return new Date(rp.value+'-01').toLocaleString('en',{month:'long',year:'numeric'});
-  if(rp.type==='yearly')  return rp.value||'2026';
+  if(rp.type==='yearly')  return rp.value||thisYearStr();
   if(rp.type==='custom')  return `${fmtDate(rp.from)} → ${fmtDate(rp.to)}`;
-  if(rp.type==='compare') return `${rp.year1||'2025'} vs ${rp.year2||'2026'}`;
+  if(rp.type==='compare') return `${rp.year1||lastYearStr()} vs ${rp.year2||thisYearStr()}`;
   return '';
 }
 
@@ -3141,14 +3202,14 @@ function renderReportSummary(el) {
     </div>
   `;
   setTimeout(()=>{
-    reportCharts['sum-bar'] = makeBarChart('rep-summary-bar',topItems.map(i=>i.name.substring(0,12)+'…'),[{label:'Value (₹)',data:topItems.map(i=>i.purchase*i.stock),color:'#1D9E75'}]);
+    reportCharts['sum-bar'] = makeBarChart('rep-summary-bar',topItems.map(i=>i.name.substring(0,12)+'…'),[{label:'Value (₹)',data:topItems.map(i=>i.purchase*i.stock),color:'#1D9E75',multicolor:true}]);
     reportCharts['sum-donut'] = makeDoughnut('rep-summary-donut',Object.keys(byCat),Object.values(byCat));
   },50);
 }
 
 function renderReportMovement(el) {
   if(reportPeriod.type==='compare') {
-    const y1=reportPeriod.year1||'2025', y2=reportPeriod.year2||'2026';
+    const y1=reportPeriod.year1||lastYearStr(), y2=reportPeriod.year2||thisYearStr();
     const inY1=getYearMonthlyTotals(purchaseOrders,'date',o=>o.lines.reduce((s,l)=>s+l.qty,0),y1);
     const inY2=getYearMonthlyTotals(purchaseOrders,'date',o=>o.lines.reduce((s,l)=>s+l.qty,0),y2);
     const outY1=getYearMonthlyTotals(salesOrders,'date',o=>o.lines.reduce((s,l)=>s+l.qty,0),y1);
@@ -3240,7 +3301,7 @@ function renderReportReorder(el) {
 
 function renderReportSalesByItem(el) {
   if(reportPeriod.type==='compare') {
-    const y1=reportPeriod.year1||'2025', y2=reportPeriod.year2||'2026';
+    const y1=reportPeriod.year1||lastYearStr(), y2=reportPeriod.year2||thisYearStr();
     const soY1=salesOrders.filter(o=>o.date.startsWith(y1));
     const soY2=salesOrders.filter(o=>o.date.startsWith(y2));
     const revY1={},revY2={};
@@ -3303,13 +3364,13 @@ function renderReportSalesByItem(el) {
   const top6 = sorted.slice(0,6);
   setTimeout(()=>{
     reportCharts['sbi-bar'] = makeBarChart('rep-sbi-bar',top6.map(id=>getItem(id)?.name?.substring(0,12)||id),[{label:'Revenue',data:top6.map(id=>itemRevenue[id]),color:'#1D9E75'},{label:'Cost',data:top6.map(id=>itemCost[id]||0),color:'#EF4444'}]);
-    reportCharts['sbi-margin'] = makeBarChart('rep-sbi-margin',top6.map(id=>getItem(id)?.name?.substring(0,12)||id),[{label:'Margin %',data:top6.map(id=>{const r=itemRevenue[id];const c=itemCost[id]||0;return r?((r-c)/r*100).toFixed(1):0;}),color:'#8B5CF6'}]);
+    reportCharts['sbi-margin'] = makeBarChart('rep-sbi-margin',top6.map(id=>getItem(id)?.name?.substring(0,12)||id),[{label:'Margin %',data:top6.map(id=>{const r=itemRevenue[id];const c=itemCost[id]||0;return r?((r-c)/r*100).toFixed(1):0;}),color:'#8B5CF6',multicolor:true}]);
   },50);
 }
 
 function renderReportPurchaseHistory(el) {
   if(reportPeriod.type==='compare') {
-    const y1=reportPeriod.year1||'2025', y2=reportPeriod.year2||'2026';
+    const y1=reportPeriod.year1||lastYearStr(), y2=reportPeriod.year2||thisYearStr();
     const poY1=purchaseOrders.filter(o=>o.entryType!=='production'&&o.date.startsWith(y1));
     const poY2=purchaseOrders.filter(o=>o.entryType!=='production'&&o.date.startsWith(y2));
     const spY1=getYearMonthlyTotals(poY1,'date',o=>o.total,y1);
@@ -3400,7 +3461,7 @@ function renderReportValuation(el) {
   `;
   const top8 = valued.slice(0,8);
   setTimeout(()=>{
-    reportCharts['val-bar'] = makeBarChart('rep-val-bar',top8.map(i=>i.name.substring(0,12)),[{label:'Value (₹)',data:top8.map(i=>i.purchase*i.stock),color:'#1D9E75'}]);
+    reportCharts['val-bar'] = makeBarChart('rep-val-bar',top8.map(i=>i.name.substring(0,12)),[{label:'Value (₹)',data:top8.map(i=>i.purchase*i.stock),color:'#1D9E75',multicolor:true}]);
     reportCharts['val-donut'] = makeDoughnut('rep-val-donut',['In Stock','Low Stock','Out of Stock'],[inStockCt,lowCt,outCt]);
   },50);
 }
@@ -3408,8 +3469,8 @@ function renderReportValuation(el) {
 function renderReportProfitExpenses(el) {
   // ── Compare Years mode ──────────────────────────
   if(reportPeriod.type === 'compare') {
-    const y1 = reportPeriod.year1 || '2025';
-    const y2 = reportPeriod.year2 || '2026';
+    const y1 = reportPeriod.year1 || lastYearStr();
+    const y2 = reportPeriod.year2 || thisYearStr();
 
     const soY1=salesOrders.filter(o=>o.date.startsWith(y1));
     const soY2=salesOrders.filter(o=>o.date.startsWith(y2));
@@ -3830,7 +3891,7 @@ function renderCapital() {
     // Startup costs by category bar
     const cats = Object.keys(startupByCat);
     const vals = Object.values(startupByCat);
-    reportCharts['cap-startup'] = makeBarChart('cap-chart-startup', cats.map(c=>c.length>12?c.slice(0,12)+'…':c), [{label:'Amount (₹)', data:vals, color:'#EF4444'}]);
+    reportCharts['cap-startup'] = makeBarChart('cap-chart-startup', cats.map(c=>c.length>12?c.slice(0,12)+'…':c), [{label:'Amount (₹)', data:vals, color:'#EF4444',multicolor:true}]);
   }, 50);
 }
 
@@ -3950,6 +4011,453 @@ function deleteStartupExpense(id) {
   saveData();
   toast('Startup expense deleted');
   renderCapital();
+}
+
+// ═══════════════════════════════════════════════
+//  PATIENT MANAGEMENT
+// ═══════════════════════════════════════════════
+
+// Returns follow-up status for a patient based on followUpDate vs today.
+function followUpInfo(p) {
+  if (!p || !p.followUpDate) return {state:'none', label:'No follow-up', cls:'pill-gray', days:null};
+  const t = new Date(); t.setHours(0,0,0,0);
+  const f = new Date(p.followUpDate + 'T00:00:00');
+  const days = Math.round((f - t) / 86400000);
+  if (days < 0)  return {state:'overdue',   label:Math.abs(days)+ (Math.abs(days)===1?' day overdue':' days overdue'), cls:'pill-red',   days};
+  if (days === 0) return {state:'today',     label:'Due today',     cls:'pill-amber', days};
+  if (days <= 7) return {state:'upcoming',   label:'In '+days+(days===1?' day':' days'), cls:'pill-amber', days};
+  return {state:'scheduled', label:'Scheduled', cls:'pill-blue', days};
+}
+function isFollowUpDue(p)      { const s=followUpInfo(p).state; return s==='overdue' || s==='today'; }
+function isFollowUpUpcoming(p) { return followUpInfo(p).state==='upcoming'; }
+
+function renderPatients() {
+  const due      = patients.filter(isFollowUpDue);
+  const upcoming = patients.filter(isFollowUpUpcoming);
+  const noFu     = patients.filter(p=>followUpInfo(p).state==='none');
+  const ring = key => patientView===key ? 'box-shadow:0 0 0 2px var(--primary), var(--sh);' : '';
+
+  const el = document.getElementById('page-patients');
+  el.innerHTML = `
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-input" style="position:relative">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="patients-search-input" placeholder="Search by name, reg no or mobile…" value="${patientsSearch}" oninput="patientsSearch=this.value;renderPatientsContent()">
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-secondary" onclick="exportPatientsCSV()"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+        <button class="btn btn-primary" onclick="openPatientModal()"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Patient</button>
+      </div>
+    </div>
+
+    <div class="metric-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="metric-card" style="${ring('all')}" onclick="setPatientView('all')">
+        <div class="metric-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="metric-label">Total Patients</div>
+        <div class="metric-value">${patients.length}</div>
+        <div class="metric-sub">${patientView==='all'?'Showing all patients':'Click to view all'}</div>
+      </div>
+      <div class="metric-card" style="border-top:3px solid ${due.length?'var(--red)':'var(--primary)'};${ring('due')}" onclick="setPatientView('due')">
+        <div class="metric-icon" style="background:${due.length?'var(--red-bg)':'var(--primary-light)'}"><svg fill="none" stroke="${due.length?'var(--red)':'var(--primary)'}" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="metric-label">Follow-ups Due</div>
+        <div class="metric-value" style="color:${due.length?'var(--red-text)':'var(--text)'}">${due.length}</div>
+        <div class="metric-sub">Overdue + due today</div>
+      </div>
+      <div class="metric-card" style="border-top:3px solid var(--amber);${ring('upcoming')}" onclick="setPatientView('upcoming')">
+        <div class="metric-icon amber"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div class="metric-label">Upcoming (7 days)</div>
+        <div class="metric-value">${upcoming.length}</div>
+        <div class="metric-sub">Scheduled this week</div>
+      </div>
+      <div class="metric-card" style="${ring('nofu')}" onclick="setPatientView('nofu')">
+        <div class="metric-icon blue"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+        <div class="metric-label">No Follow-up Set</div>
+        <div class="metric-value">${noFu.length}</div>
+        <div class="metric-sub">Patients without a date</div>
+      </div>
+    </div>
+
+    <div id="patients-content"></div>
+  `;
+  renderPatientsContent();
+}
+
+function setPatientView(v) { patientView = v; renderPatients(); }
+
+// Renders the content below the cards based on the selected card (patientView).
+function renderPatientsContent() {
+  const c = document.getElementById('patients-content');
+  if (!c) return;
+  const q = patientsSearch.trim().toLowerCase();
+  const matchQ = p => !q || (p.name||'').toLowerCase().includes(q) || (p.regNo||'').toLowerCase().includes(q) || (p.mobile||'').toLowerCase().includes(q);
+
+  if (patientView === 'all') {
+    c.innerHTML = remindersPanelHTML() + allPatientsPanelHTML(matchQ, q);
+    return;
+  }
+
+  let list, title, sub, empty, whatsapp = false, badgeCls = 'pill-gray';
+  if (patientView === 'due') {
+    list = patients.filter(isFollowUpDue).filter(matchQ).sort((a,b)=>followUpInfo(a).days - followUpInfo(b).days);
+    title = '🔔 Follow-ups Due'; sub = 'Patients overdue or due today'; empty = 'No follow-ups due 🎉';
+    whatsapp = true; badgeCls = list.length ? 'pill-red' : 'pill-green';
+  } else if (patientView === 'upcoming') {
+    list = patients.filter(isFollowUpUpcoming).filter(matchQ).sort((a,b)=>followUpInfo(a).days - followUpInfo(b).days);
+    title = '📅 Upcoming Follow-ups (Next 7 Days)'; sub = 'Scheduled within the next week'; empty = 'No upcoming follow-ups this week';
+    whatsapp = true; badgeCls = 'pill-amber';
+  } else { // nofu
+    list = patients.filter(p=>followUpInfo(p).state==='none').filter(matchQ).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    title = 'No Follow-up Scheduled'; sub = 'Patients without a follow-up date'; empty = 'Every patient has a follow-up date set';
+    badgeCls = 'pill-blue';
+  }
+
+  const shareBtn = list.length
+    ? `<button class="btn btn-secondary" style="padding:5px 11px;font-size:12.5px" onclick="openShareList('${patientView}')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>`
+    : '';
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">${title}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${sub}</div></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${shareBtn}
+          <span class="pill ${badgeCls}">${list.length} patient${list.length!==1?'s':''}</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0">
+        ${list.length ? `<div class="table-wrap"><table>
+          <thead><tr><th>Patient</th><th>Mobile</th><th>Last Visit</th><th>Follow-up</th><th style="text-align:right">Actions</th></tr></thead>
+          <tbody>${list.map(p=>patientRowHTML(p, whatsapp)).join('')}</tbody>
+        </table></div>` : `<div class="empty-state" style="padding:30px 20px"><p>${q?'No matching patients':empty}</p><small>${q?'Try a different name, reg no or mobile':''}</small></div>`}
+      </div>
+    </div>
+  `;
+}
+
+// A patient row for the filtered (due / upcoming / no-follow-up) views.
+function patientRowHTML(p, whatsapp) {
+  const fi = followUpInfo(p);
+  const isDue = fi.state==='overdue' || fi.state==='today';
+  return `
+    <tr>
+      <td><div class="fw-6">${p.name}${p.gender?`<span style="font-size:11px;color:var(--text3);font-weight:400"> · ${p.gender}</span>`:''}</div><div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${p.regNo}</div></td>
+      <td><a href="tel:${(p.mobile||'').replace(/\s/g,'')}" style="color:var(--primary);text-decoration:none">${p.mobile||'—'}</a></td>
+      <td>${fmtDate(p.lastVisit)}</td>
+      <td>${p.followUpDate?`<span class="pill ${fi.cls}">${fi.label==='Scheduled'?fmtDate(p.followUpDate):fi.label}</span><div style="font-size:11px;color:var(--text3);margin-top:3px">${fmtDate(p.followUpDate)}</div>`:`<span class="pill pill-gray">None</span>`}</td>
+      <td>
+        <div style="display:flex;gap:5px;justify-content:flex-end;align-items:center;flex-wrap:wrap">
+          ${whatsapp?`<button class="btn btn-secondary" style="padding:4px 9px;font-size:12px" title="Send WhatsApp reminder to this patient" onclick="whatsappReminder('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> WhatsApp</button>`:''}
+          ${isDue?`<button class="kebab-btn" title="Mark as followed up" onclick="markFollowUpDone('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>`:''}
+          <button class="kebab-btn" title="Share / export details" onclick="openSharePatient('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+          <button class="kebab-btn" title="Edit" onclick="openPatientModal('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+}
+
+// The Follow-up Reminders panel (used in the 'all' view).
+function remindersPanelHTML() {
+  const due = patients.filter(isFollowUpDue);
+  const upcoming = patients.filter(isFollowUpUpcoming);
+  const reminders = patients.filter(p=>['overdue','today','upcoming'].includes(followUpInfo(p).state)).sort((a,b)=>followUpInfo(a).days - followUpInfo(b).days);
+  return `
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <span class="card-title">🔔 Follow-up Reminders</span>
+        <span class="pill ${due.length?'pill-red':'pill-green'}">${due.length} due${upcoming.length?` · ${upcoming.length} upcoming`:''}</span>
+      </div>
+      <div class="card-body" style="padding:0">
+        ${reminders.length ? `<div class="table-wrap"><table>
+          <thead><tr><th>Patient</th><th>Mobile</th><th>Last Visit</th><th>Follow-up</th><th style="text-align:right">Action</th></tr></thead>
+          <tbody>
+            ${reminders.map(p=>{ const fi=followUpInfo(p); return `
+              <tr>
+                <td><div class="fw-6">${p.name}</div><div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${p.regNo}</div></td>
+                <td><a href="tel:${(p.mobile||'').replace(/\s/g,'')}" style="color:var(--primary);text-decoration:none">${p.mobile||'—'}</a></td>
+                <td>${fmtDate(p.lastVisit)}</td>
+                <td><span class="pill ${fi.cls}">${fi.label}</span><div style="font-size:11px;color:var(--text3);margin-top:3px">${fmtDate(p.followUpDate)}</div></td>
+                <td>
+                  <div style="display:flex;gap:5px;justify-content:flex-end">
+                    <button class="kebab-btn" title="Share / export details" onclick="openSharePatient('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                    <button class="kebab-btn" title="Edit" onclick="openPatientModal('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+              ${p.notes ? `<tr style="background:var(--bg)"><td colspan="5" style="padding:4px 14px 9px;font-size:12px;color:var(--text3)">📝 ${p.notes}</td></tr>`:''}
+            `; }).join('')}
+          </tbody>
+        </table></div>` : `<div class="empty-state" style="padding:30px 20px"><p>No follow-ups due 🎉</p><small>Patients with a follow-up date that is overdue or within the next 7 days will appear here.</small></div>`}
+      </div>
+    </div>`;
+}
+
+// The All Patients panel (used in the 'all' view).
+function allPatientsPanelHTML(matchQ, q) {
+  const list = patients.filter(matchQ).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  return `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All Patients</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-secondary" style="padding:5px 11px;font-size:12.5px" onclick="openShareList('all')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>
+          <span style="font-size:12px;color:var(--text3)">${list.length} of ${patients.length}</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Reg No</th><th>Name</th><th>Mobile</th><th>Last Visit</th><th>Next Follow-up</th><th style="text-align:right">Actions</th></tr></thead>
+          <tbody>${list.length ? list.map(p=>{ const fi=followUpInfo(p); return `
+            <tr>
+              <td style="font-family:'DM Mono',monospace;font-size:12.5px">${p.regNo}</td>
+              <td class="fw-6">${p.name}${p.gender?`<span style="font-size:11px;color:var(--text3);font-weight:400"> · ${p.gender}</span>`:''}</td>
+              <td><a href="tel:${(p.mobile||'').replace(/\s/g,'')}" style="color:var(--primary);text-decoration:none">${p.mobile||'—'}</a></td>
+              <td>${fmtDate(p.lastVisit)}</td>
+              <td>${p.followUpDate?`<span class="pill ${fi.cls}">${fi.label==='Scheduled'?fmtDate(p.followUpDate):fi.label}</span>`:`<span class="pill pill-gray">None</span>`}</td>
+              <td>
+                <div style="display:flex;gap:4px;justify-content:flex-end">
+                  ${p.followUpDate?`<button class="kebab-btn" title="Mark as followed up" onclick="markFollowUpDone('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>`:''}
+                  <button class="kebab-btn" title="Share / export details" onclick="openSharePatient('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                  <button class="kebab-btn" title="Edit" onclick="openPatientModal('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                  <button class="kebab-btn" title="Delete" style="color:var(--red)" onclick="deletePatient('${p.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                </div>
+              </td>
+            </tr>`; }).join('') : `<tr><td colspan="6"><div class="empty-state"><p>${q?'No patients match your search':'No patients yet'}</p><small>${q?'Try a different name, reg no or mobile':'Click “Add Patient” to register your first patient'}</small></div></td></tr>`}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+// Opens WhatsApp to the patient's own number with a follow-up reminder message.
+function whatsappReminder(id) {
+  const p = patients.find(x=>x.id===id);
+  if (!p) return;
+  let num = (p.mobile||'').replace(/\D/g,'');
+  if (num.length === 10) num = '91' + num;
+  if (!num) { toast('No mobile number on file for this patient','error'); return; }
+  const msg = `Dear ${p.name}, this is a friendly reminder from HomeoCare about your follow-up appointment on ${fmtDate(p.followUpDate)}. Please visit the clinic for your consultation. Thank you.`;
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function openPatientModal(id) {
+  editingPatientId = id || null;
+  const p = id ? patients.find(x=>x.id===id) : null;
+  document.getElementById('patient-modal-title').textContent = id ? 'Edit Patient' : 'Add Patient';
+  document.getElementById('patient-modal-body').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>Patient Name *</label><input id="pt-name" value="${p?.name||''}" placeholder="e.g. Aisha Rahman"></div>
+      <div class="form-group"><label>Registration No *</label><input id="pt-reg" value="${p?.regNo||''}" placeholder="e.g. HC-2026-008"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Mobile No *</label><input id="pt-mobile" value="${p?.mobile||''}" placeholder="e.g. +91 98765 43210"></div>
+      <div class="form-group"><label>Gender</label>
+        <select id="pt-gender">${['','Male','Female','Other'].map(g=>`<option value="${g}" ${(p?.gender||'')===g?'selected':''}>${g||'— Select —'}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Last Visit</label><input type="date" id="pt-lastvisit" value="${p?.lastVisit||today()}"></div>
+      <div class="form-group"><label>Next Follow-up Date</label><input type="date" id="pt-followup" value="${p?.followUpDate||''}"></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="pt-notes" rows="2" placeholder="Prescription, remedy, observations…">${p?.notes||''}</textarea></div>
+    <div style="font-size:11.5px;color:var(--text3);background:var(--primary-light);border:1px solid var(--primary-mid);border-radius:var(--r-sm);padding:8px 10px">💡 Set a <strong>Next Follow-up Date</strong> and this patient will show up under Follow-up Reminders and in the dashboard count when the date is near or overdue.</div>
+  `;
+  openModal('modal-patient');
+}
+
+// Normalises a number to Indian display format: +91 XXXXX XXXXX (leaves anything non-standard as typed).
+function formatIndianMobile(raw) {
+  let d = (raw||'').replace(/\D/g,'');
+  if (d.length===12 && d.startsWith('91')) d = d.slice(2);
+  else if (d.length===11 && d.startsWith('0')) d = d.slice(1);
+  if (d.length===10) return '+91 ' + d.slice(0,5) + ' ' + d.slice(5);
+  return (raw||'').trim();
+}
+
+function savePatient() {
+  const name   = document.getElementById('pt-name').value.trim();
+  const regNo  = document.getElementById('pt-reg').value.trim();
+  const mobile = document.getElementById('pt-mobile').value.trim();
+  if (!name)   { toast('Patient name is required','error'); return; }
+  if (!regNo)  { toast('Registration number is required','error'); return; }
+  if (!mobile) { toast('Mobile number is required','error'); return; }
+  const localDigits = mobile.replace(/\D/g,'').replace(/^91(?=\d{10}$)/,'').replace(/^0(?=\d{10}$)/,'');
+  if (localDigits.length !== 10) { toast('Enter a valid 10-digit Indian mobile number','error'); return; }
+  const dup = patients.find(p=>(p.regNo||'').toLowerCase()===regNo.toLowerCase() && p.id!==editingPatientId);
+  if (dup) { toast('A patient with this registration no already exists','error'); return; }
+  const data = {
+    name, regNo, mobile: formatIndianMobile(mobile),
+    gender:       document.getElementById('pt-gender').value,
+    lastVisit:    document.getElementById('pt-lastvisit').value,
+    followUpDate: document.getElementById('pt-followup').value,
+    notes:        document.getElementById('pt-notes').value.trim()
+  };
+  if (editingPatientId) {
+    const idx = patients.findIndex(p=>p.id===editingPatientId);
+    patients[idx] = {...patients[idx], ...data};
+    toast('Patient updated');
+  } else {
+    data.id = genId('PT', patients);
+    patients.push(data);
+    toast('✅ Patient added');
+  }
+  saveData();
+  closeModal('modal-patient');
+  renderPatients();
+}
+
+function deletePatient(id) {
+  const p = patients.find(x=>x.id===id);
+  if (!confirm(`Delete patient "${p?.name||''}"? This cannot be undone.`)) return;
+  patients = patients.filter(x=>x.id!==id);
+  saveData();
+  toast('Patient deleted');
+  renderPatients();
+}
+
+// Marks the current follow-up complete: records today's visit and clears the pending date.
+function markFollowUpDone(id) {
+  const idx = patients.findIndex(p=>p.id===id);
+  if (idx < 0) return;
+  patients[idx] = {...patients[idx], lastVisit: today(), followUpDate: ''};
+  saveData();
+  toast('✅ Marked as followed up');
+  renderPatients();
+}
+
+// ─── Patient export & share ───
+function downloadBlob(filename, content, mime) {
+  try {
+    const blob = new Blob([content], {type:mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  } catch(e) { toast('Download is not available in this view','error'); }
+}
+
+// Formats one patient's details as shareable plain text.
+function patientShareText(p) {
+  const fi = followUpInfo(p);
+  const fu = p.followUpDate ? fmtDate(p.followUpDate) + ((fi.label && fi.state!=='scheduled') ? ` (${fi.label})` : '') : 'Not scheduled';
+  const lines = [
+    'HomeoCare — Patient Details',
+    '──────────────────────────',
+    'Name        : ' + (p.name||'—'),
+    'Reg No      : ' + (p.regNo||'—'),
+    'Mobile      : ' + (p.mobile||'—')
+  ];
+  if (p.gender) lines.push('Gender      : ' + p.gender);
+  lines.push('Last Visit  : ' + fmtDate(p.lastVisit));
+  lines.push('Follow-up   : ' + fu);
+  if (p.notes) lines.push('Notes       : ' + p.notes);
+  return lines.join('\n');
+}
+
+// Exports the full patient list to a CSV file.
+function exportPatientsCSV() {
+  if (!patients.length) { toast('No patients to export','info'); return; }
+  const headers = ['Reg No','Name','Mobile','Gender','Last Visit','Next Follow-up','Follow-up Status','Notes'];
+  const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+  const rows = [...patients].sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(p=>{
+    const fi = followUpInfo(p);
+    return [p.regNo, p.name, p.mobile, p.gender||'', p.lastVisit||'', p.followUpDate||'', (p.followUpDate?fi.label:''), p.notes||''];
+  });
+  const csv = [headers, ...rows].map(r=>r.map(esc).join(',')).join('\r\n');
+  downloadBlob('patients_' + today() + '.csv', '\ufeff' + csv, 'text/csv;charset=utf-8;');
+  toast('✅ Exported ' + patients.length + ' patient' + (patients.length!==1?'s':'') + ' to CSV');
+}
+
+// Opens the share modal for a single patient.
+let shareCtx = { title:'Patient Details', subject:'Patient Details', filename:'patient.txt' };
+
+// Builds the share dialog (textarea + Copy / WhatsApp / Email / Download / native Share) for any text.
+function buildShareModal(title, text, intro) {
+  shareCtx.title = title;
+  document.getElementById('share-patient-title').textContent = title;
+  const nativeBtn = navigator.share
+    ? `<button class="btn btn-primary" style="grid-column:1/-1" onclick="shareDoNative()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share…</button>`
+    : '';
+  document.getElementById('share-patient-body').innerHTML = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${intro||'Review the details below, then copy, share, or download them.'}</div>
+    <textarea id="share-patient-text" readonly rows="9" style="width:100%;box-sizing:border-box;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.55;color:var(--text);background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px;resize:vertical">${text}</textarea>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px">
+      ${nativeBtn}
+      <button class="btn btn-secondary" onclick="shareDoCopy()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+      <button class="btn btn-secondary" onclick="shareDoWhatsApp()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> WhatsApp</button>
+      <button class="btn btn-secondary" onclick="shareDoEmail()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg> Email</button>
+      <button class="btn btn-secondary" onclick="shareDoDownload()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download</button>
+    </div>
+  `;
+  openModal('modal-share-patient');
+}
+
+// Share a single patient's details.
+function openSharePatient(id) {
+  const p = patients.find(x=>x.id===id);
+  if (!p) return;
+  shareCtx.subject = 'Patient Details — ' + p.name;
+  shareCtx.filename = 'patient_' + String(p.regNo || p.name || 'details').replace(/[^a-z0-9]+/gi,'_') + '.txt';
+  buildShareModal('Share — ' + p.name, patientShareText(p));
+}
+
+// Share the patient list for a given card view (all / due / upcoming / nofu).
+function openShareList(view) {
+  const titleMap = { all:'All Patients', due:'Follow-ups Due', upcoming:'Upcoming Follow-ups (7 Days)', nofu:'No Follow-up Set' };
+  const label = titleMap[view] || 'Patients';
+  shareCtx.subject = 'HomeoCare — ' + label;
+  shareCtx.filename = 'patients_' + view + '_' + today() + '.txt';
+  buildShareModal('Share — ' + label, patientListText(view), 'Review the list below, then copy, share, or download it.');
+}
+
+// Builds shareable text for the patient list of a given view.
+function patientListText(view) {
+  let list, heading;
+  if (view==='due')           { list = patients.filter(isFollowUpDue);                     heading = 'Follow-ups Due'; }
+  else if (view==='upcoming') { list = patients.filter(isFollowUpUpcoming);                heading = 'Upcoming Follow-ups (Next 7 Days)'; }
+  else if (view==='nofu')     { list = patients.filter(p=>followUpInfo(p).state==='none'); heading = 'No Follow-up Set'; }
+  else                        { list = patients.slice();                                   heading = 'All Patients'; }
+  list = list.slice().sort((a,b)=> (view==='due'||view==='upcoming') ? (followUpInfo(a).days - followUpInfo(b).days) : (a.name||'').localeCompare(b.name||''));
+  const lines = ['HomeoCare — ' + heading, '──────────────────────────', 'Total: ' + list.length + ' patient' + (list.length!==1?'s':''), ''];
+  if (!list.length) lines.push('(no patients)');
+  list.forEach((p,i)=>{
+    const fi = followUpInfo(p);
+    const fu = p.followUpDate ? fmtDate(p.followUpDate) + ((fi.label && fi.state!=='scheduled') ? ` (${fi.label})` : '') : 'Not scheduled';
+    lines.push((i+1) + '. ' + p.name + ' (' + p.regNo + ')');
+    lines.push('   Mobile: ' + (p.mobile||'—') + '  |  Follow-up: ' + fu);
+  });
+  return lines.join('\n');
+}
+
+function shareGetText() { const ta = document.getElementById('share-patient-text'); return ta ? ta.value : ''; }
+
+function shareDoCopy() {
+  const ta = document.getElementById('share-patient-text');
+  if (!ta) return;
+  const done = () => toast('📋 Copied to clipboard');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(done).catch(()=>legacyCopy(ta, done));
+  } else { legacyCopy(ta, done); }
+}
+function legacyCopy(ta, done) {
+  ta.removeAttribute('readonly'); ta.focus(); ta.select();
+  try { document.execCommand('copy'); done(); }
+  catch(e) { toast('Select the text and copy manually','info'); }
+  ta.setAttribute('readonly',''); if (window.getSelection) window.getSelection().removeAllRanges();
+}
+function shareDoWhatsApp() {
+  window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(shareGetText()), '_blank');
+}
+function shareDoEmail() {
+  window.open('mailto:?subject=' + encodeURIComponent(shareCtx.subject||'Patient Details') + '&body=' + encodeURIComponent(shareGetText()), '_blank');
+}
+function shareDoDownload() {
+  downloadBlob(shareCtx.filename||'patient.txt', shareGetText(), 'text/plain;charset=utf-8;');
+  toast('✅ Downloaded');
+}
+function shareDoNative() {
+  if (navigator.share) navigator.share({title:shareCtx.subject||'Patient Details', text:shareGetText()}).catch(()=>{});
 }
 
 // ═══════════════════════════════════════════════
