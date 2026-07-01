@@ -1111,6 +1111,8 @@ let ordersFilter = 'All';
 let ordersSearch = '';
 let purchaseFilter = 'All';
 let purchaseSearch = '';
+let ordersPeriod = { type:'all', value:'' };    // Day / Month / Year filter for the Sales list
+let purchasePeriod = { type:'all', value:'' };  // Day / Month / Year filter for the Purchase list
 let expenseCat = null;
 let editingExpenseId = null;
 let expandedOrderRows = new Set();
@@ -1309,8 +1311,8 @@ const NAV_CONFIG = [
   {section:'Patients', items:[{key:'patients',label:'Patient Management',admin:false,icon:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'}]},
   {section:'Inventory', items:[{key:'items',label:'Items',admin:false,icon:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'}]},
   {section:'Transactions', items:[
-    {key:'orders',label:'Sales Orders',admin:false,icon:'<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'},
-    {key:'purchase',label:'Purchase Orders',admin:false,icon:'<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h6l-3 9H16"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>'},
+    {key:'orders',label:'Sales',admin:false,icon:'<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'},
+    {key:'purchase',label:'Purchase',admin:false,icon:'<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h6l-3 9H16"/><circle cx="5.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/>'},
     {key:'expenses',label:'Expenses',admin:false,icon:'<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>'}
   ]},
   {section:'Analytics', items:[{key:'reports',label:'Reports',admin:true,icon:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'}]},
@@ -1359,7 +1361,7 @@ function navigate(page, sub) {
   currentReport = sub || null;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.key === page));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  const names = {dashboard:'Dashboard',items:'Items',orders:'Sales Orders',purchase:'Purchase Orders',expenses:'Expenses',reports:'Reports',users:'User Management',capital:'Capital & Funding',patients:'Patient Management'};
+  const names = {dashboard:'Dashboard',items:'Items',orders:'Sales',purchase:'Purchase',expenses:'Expenses',reports:'Reports',users:'User Management',capital:'Capital & Funding',patients:'Patient Management'};
   document.getElementById('topbar-title').textContent = names[page] || page;
   const p = document.getElementById('page-' + page);
   if (p) {
@@ -1969,6 +1971,15 @@ function renderOrders() {
         <div class="filter-tabs" id="orders-filter-tabs">
           ${['All','Paid','Partially Paid'].map(f=>`<div class="filter-tab ${ordersFilter===f?'active':''}" onclick="ordersFilter='${f}';refreshOrderFilterTabs();renderOrdersBody()">${f} (${f==='All'?salesOrders.length:salesOrders.filter(o=>o.paymentStatus===f).length})</div>`).join('')}
         </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <select onchange="setOrdersPeriodType(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer">
+            <option value="all" ${ordersPeriod.type==='all'?'selected':''}>All time</option>
+            <option value="day" ${ordersPeriod.type==='day'?'selected':''}>Day</option>
+            <option value="month" ${ordersPeriod.type==='month'?'selected':''}>Month</option>
+            <option value="year" ${ordersPeriod.type==='year'?'selected':''}>Year</option>
+          </select>
+          <span id="orders-period-input">${ordersPeriodValueHTML()}</span>
+        </div>
         <div class="search-input">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="orders-search-input" placeholder="Search by order #, customer or item name…" value="${ordersSearch}" oninput="ordersSearch=this.value;renderOrdersBody()">
@@ -1996,6 +2007,7 @@ function renderOrders() {
 function renderOrdersBody() {
   let filtered = [...salesOrders].sort((a,b)=>b.date.localeCompare(a.date));
   if(ordersFilter !== 'All') filtered = filtered.filter(o=>o.paymentStatus===ordersFilter);
+  filtered = filtered.filter(o=>inPeriod(o.date, ordersPeriod));
   if(ordersSearch.trim()) {
     const q = ordersSearch.trim().toLowerCase();
     filtered = filtered.filter(o=>
@@ -2009,7 +2021,7 @@ function renderOrdersBody() {
   if(!tbody) return;
   tbody.innerHTML = filtered.length
     ? filtered.map(o=>renderOrderRow(o)).join('')
-    : `<tr><td colspan="9"><div class="empty-state"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/></svg><p>No orders found</p><small>${ordersSearch?'No results for "'+ordersSearch+'" — try a different term':'Create your first sales order'}</small></div></td></tr>`;
+    : `<tr><td colspan="9"><div class="empty-state"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/></svg><p>No orders found</p><small>${ordersSearch?'No results for "'+ordersSearch+'" — try a different term':ordersPeriod.type!=='all'?'No orders in the selected period':'Create your first sales order'}</small></div></td></tr>`;
   const clearBtn = document.getElementById('orders-clear-btn');
   if(clearBtn) clearBtn.style.display = ordersSearch ? 'flex' : 'none';
 }
@@ -2028,6 +2040,44 @@ function clearOrdersSearch() {
   const inp = document.getElementById('orders-search-input');
   if(inp) { inp.value=''; inp.focus(); }
   renderOrdersBody();
+}
+
+// ── Day / Month / Year period filter (shared by Sales & Purchase lists) ──
+const PERIOD_CTL_STYLE = "padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer";
+function inPeriod(dateStr, period) {
+  if (!period || period.type==='all' || !period.value) return true;
+  if (period.type==='day')   return dateStr === period.value;
+  if (period.type==='month') return dateStr.slice(0,7) === period.value;
+  if (period.type==='year')  return dateStr.slice(0,4) === period.value;
+  return true;
+}
+function ordersPeriodValueHTML() {
+  const on = 'onchange="ordersPeriod.value=this.value;renderOrdersBody()"';
+  if (ordersPeriod.type==='day')   return `<input type="date" value="${ordersPeriod.value}" ${on} style="${PERIOD_CTL_STYLE}">`;
+  if (ordersPeriod.type==='month') return `<input type="month" value="${ordersPeriod.value}" ${on} style="${PERIOD_CTL_STYLE}">`;
+  if (ordersPeriod.type==='year')  return `<select ${on} style="${PERIOD_CTL_STYLE}">${recentYears(6).slice().reverse().map(y=>`<option value="${y}" ${ordersPeriod.value===y?'selected':''}>${y}</option>`).join('')}</select>`;
+  return '';
+}
+function setOrdersPeriodType(type) {
+  ordersPeriod.type = type;
+  ordersPeriod.value = type==='day'?today():type==='month'?thisMonthStr():type==='year'?thisYearStr():'';
+  const span = document.getElementById('orders-period-input');
+  if (span) span.innerHTML = ordersPeriodValueHTML();
+  renderOrdersBody();
+}
+function purchasePeriodValueHTML() {
+  const on = 'onchange="purchasePeriod.value=this.value;renderPurchaseBody()"';
+  if (purchasePeriod.type==='day')   return `<input type="date" value="${purchasePeriod.value}" ${on} style="${PERIOD_CTL_STYLE}">`;
+  if (purchasePeriod.type==='month') return `<input type="month" value="${purchasePeriod.value}" ${on} style="${PERIOD_CTL_STYLE}">`;
+  if (purchasePeriod.type==='year')  return `<select ${on} style="${PERIOD_CTL_STYLE}">${recentYears(6).slice().reverse().map(y=>`<option value="${y}" ${purchasePeriod.value===y?'selected':''}>${y}</option>`).join('')}</select>`;
+  return '';
+}
+function setPurchasePeriodType(type) {
+  purchasePeriod.type = type;
+  purchasePeriod.value = type==='day'?today():type==='month'?thisMonthStr():type==='year'?thisYearStr():'';
+  const span = document.getElementById('purchase-period-input');
+  if (span) span.innerHTML = purchasePeriodValueHTML();
+  renderPurchaseBody();
 }
 
 function renderOrderRow(o) {
@@ -2340,6 +2390,15 @@ function renderPurchase() {
             return `<div class="filter-tab ${purchaseFilter===f?'active':''}" onclick="purchaseFilter='${f}';refreshPurchaseFilterTabs();renderPurchaseBody()">${f} (${count})</div>`;
           }).join('')}
         </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <select onchange="setPurchasePeriodType(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer">
+            <option value="all" ${purchasePeriod.type==='all'?'selected':''}>All time</option>
+            <option value="day" ${purchasePeriod.type==='day'?'selected':''}>Day</option>
+            <option value="month" ${purchasePeriod.type==='month'?'selected':''}>Month</option>
+            <option value="year" ${purchasePeriod.type==='year'?'selected':''}>Year</option>
+          </select>
+          <span id="purchase-period-input">${purchasePeriodValueHTML()}</span>
+        </div>
         <div class="search-input">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="purchase-search-input" placeholder="Search by PO #, vendor or item name…" value="${purchaseSearch}" oninput="purchaseSearch=this.value;renderPurchaseBody()">
@@ -2355,7 +2414,7 @@ function renderPurchase() {
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>PO / PE #</th><th>Type</th><th>Date</th><th>Vendor / Source</th><th>Total Value</th><th>Payment</th><th>Balance Due</th><th></th>
+          <th>PO / PE #</th><th>Type</th><th>Date</th><th>Vendor / Source</th><th>Products</th><th>Total Value</th><th>Payment</th><th>Balance Due</th><th></th>
         </tr></thead>
         <tbody id="purchase-tbody"></tbody>
       </table>
@@ -2381,6 +2440,7 @@ function renderPurchaseBody() {
       o.lines.some(l=>getItem(l.itemId)?.sku.toLowerCase().includes(q))
     );
   }
+  filtered = filtered.filter(o=>inPeriod(o.date, purchasePeriod));
   const tbody = document.getElementById('purchase-tbody');
   if(!tbody) return;
   tbody.innerHTML = filtered.length ? filtered.map(o=>{
@@ -2394,6 +2454,7 @@ function renderPurchaseBody() {
       </td>
       <td>${fmtDate(o.date)}</td>
       <td class="fw-6">${isProd ? (o.note||'Own Production') : o.vendor}</td>
+      <td>${(o.lines||[]).map(l=>{const it=getItem(l.itemId);return `<div style="white-space:nowrap;line-height:1.55"><span class="fw-6">${it?.name||'—'}</span> <span class="td-muted" style="font-size:12px">× ${l.qty}</span></div>`;}).join('')||'<span class="td-muted">—</span>'}</td>
       <td class="td-mono fw-6">${fmt(o.total)}</td>
       <td>${isProd
         ? `<span class="pill pill-purple">No Payment</span>`
@@ -2417,7 +2478,7 @@ function renderPurchaseBody() {
         </div>
       </td>
     </tr>`;
-  }).join('') : `<tr><td colspan="8"><div class="empty-state"><p>No entries found</p><small>${purchaseSearch?'No results for "'+purchaseSearch+'" — try a different term':'Create your first entry'}</small></div></td></tr>`;
+  }).join('') : `<tr><td colspan="9"><div class="empty-state"><p>No entries found</p><small>${purchaseSearch?'No results for "'+purchaseSearch+'" — try a different term':purchasePeriod.type!=='all'?'No entries in the selected period':'Create your first entry'}</small></div></td></tr>`;
   const clearBtn = document.getElementById('purchase-clear-btn');
   if(clearBtn) clearBtn.style.display = purchaseSearch ? 'flex' : 'none';
 }
